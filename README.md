@@ -1,14 +1,25 @@
-The attached project is a poorly written products API.
+## Design Approach
+**Entity Framework** - I have used the for better performance and maintenance of the code. Along with EF I have used the repository design for abstraction and centralize the model.
 
-Your job, should you choose to accept it, is to make changes to this project to make it better. Simple. There are no rules, changes are not limited to pure refactors.
+**  
 
-There is no time limit (we all work at different speed!), but as a guideline, we recommend spending between 2-4 hours on the exercise. 
+## Depdendency injection 
+I have injected the DB context in container to keep it abstract and done the unit testing with mock database. 
 
-Please consider all aspects of good software engineering (including but not limited to design, reliability, readability, extensibility, quality) and show us how you'll make it #beautiful.
+## Logging
+Project is using the NLog framework for logging the errors and information
 
-Once completed, send back your solution in a zip file (source code only please to keep the zip small) and include a new README describing the improvements you have made and the rationale behind those decisions. 
+## Security
+I have implemented the bearer token to restrict and manage the access levels for this API. 
+For development I have by-pass the Authorization and token requirement in Debug mode. 
+To test the security, Run the project in Release mode and test the project in Postman.  It would return the access denied error if no token has been provided. To generate the testing token, Call the API/GetToken method and pass in all the end points in header (bearer token) to get access.
 
-Good luck!
+
+## Documentation and Schema
+Swagger has been implemented for API documentation and end points testing. 
+
+## Unit Testing Project
+Visual Studio testing framework has been used for testing the project controller(s) and have mocked the DBcontext to remove the dependency.  
 
 ## Instructions
 
