@@ -3,7 +3,7 @@ using System.Web.Http;
 using refactor_me.Xero___Repository;
 using refactor_me.Models;
 using System.Data.Entity;
-using System.Web.Script.Serialization;
+using System.Net;
 
 namespace refactor_me.Controllers
 {
@@ -11,6 +11,8 @@ namespace refactor_me.Controllers
     public class ProductOptionsController : ApiController
     {
         private IProductRepository<ProductOptions> _productRepository;
+
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         public ProductOptionsController(IProductRepository<ProductOptions> productRep)
         {
@@ -26,16 +28,38 @@ namespace refactor_me.Controllers
         [HttpGet]
         public IHttpActionResult GetAll()
         {
-            var products = _productRepository.Get();
-            return Ok(products);
+            try
+            {
+                var products = _productRepository.Get();
+                return Ok(products);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
         }
 
         [Route("Create")]
         [HttpPost]
-        public void Create(ProductOptions product)
+        public IHttpActionResult Create(ProductOptions product)
         {
-            _productRepository.Insert(product);
-            _productRepository.Save();
+            if(product == null)
+            {
+                return Ok(BadRequest());
+            }
+
+            try
+            {
+                _productRepository.Insert(product);
+                _productRepository.Save();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
+
         }
 
         /// <summary>
@@ -45,11 +69,21 @@ namespace refactor_me.Controllers
         /// <param name="product">Updated Product Information</param>
         [Route("Update")]
         [HttpPost]
-        public void Update(Guid id, ProductOptions product)
+        public IHttpActionResult Update(Guid id, ProductOptions product)
         {
-            EntityState state = _productRepository.Update(id, product);
-            if (state != EntityState.Added)
-                _productRepository.Save();
+            if (id == null || product == null)
+                return Ok(BadRequest());
+            try {
+                EntityState state = _productRepository.Update(id, product);
+                if (state != EntityState.Added)
+                    _productRepository.Save();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
+
         }
 
         /// <summary>
@@ -58,10 +92,22 @@ namespace refactor_me.Controllers
         /// <param name="productOptionsGuId">Id of the Product</param>
         [Route("Remove")]
         [HttpPost]
-        public void Remove(Guid productOptionsGuId)
+        public IHttpActionResult Remove(Guid productOptionsGuId)
         {
-            _productRepository.Delete(productOptionsGuId);
-            _productRepository.Save();
+            if(productOptionsGuId == null)
+            {
+                return Ok(BadRequest());
+            }
+            try
+            {
+                _productRepository.Delete(productOptionsGuId);
+                _productRepository.Save();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
         }
 
         /// <summary>
@@ -73,14 +119,23 @@ namespace refactor_me.Controllers
         [HttpGet]
         public IHttpActionResult SearchByName(string name)
         {
-            if (name == null)
+            if (name == null || name == "")
             {
                 return BadRequest();
             }
-            var product = _productRepository.Find(name);
-            if (product == null)
-                return NotFound();
-            return Ok(product);
+            try
+            {
+                var product = _productRepository.Find(name);
+                if (product == null)
+                    return NotFound();
+                return Ok(product);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
+
         }
 
         /// <summary>
@@ -92,10 +147,22 @@ namespace refactor_me.Controllers
         [HttpGet]
         public IHttpActionResult SearchById(Guid id)
         {
-            var product = _productRepository.Find(id);
-            if (product == null)
-                return NotFound();
-            return Ok(product);
+            if(id == null)
+            {
+                return Ok(BadRequest());
+            }
+            try
+            {
+                var product = _productRepository.Find(id);
+                if (product == null)
+                    return NotFound();
+                return Ok(product);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
         }
     }
 }

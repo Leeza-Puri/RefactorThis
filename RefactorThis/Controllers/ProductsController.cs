@@ -2,13 +2,9 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Web.Http;
-using System.Web.Http.Results;
 using refactor_me.Xero___Repository;
 using refactor_me.Models;
-//using Microsoft.Extensions.Logging;
-using System.Data;
 using System.Data.Entity;
-using System.Web.Script.Serialization;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
@@ -23,10 +19,10 @@ namespace refactor_this.Controllers
     [RoutePrefix("Products")]
     public class ProductsController : ApiController
     {
-        //  private readonly ILogger<ProductsController> _logger;
-        //private readonly IproductService;
+        private static readonly NLog.Logger _logger = NLog.LogManager.GetCurrentClassLogger();
 
         private IProductRepository<Product> _productRepository;
+
 
         public ProductsController(IProductRepository<Product> productRep)
         {
@@ -41,8 +37,16 @@ namespace refactor_this.Controllers
         [HttpGet]
         public IHttpActionResult GetAll()
         {
-            var products = _productRepository.Get();
-            return Ok(products);
+            try
+            {
+                var products = _productRepository.Get();
+                return Ok(products);
+            }
+            catch(System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(BadRequest());
         }
 
         /// <summary>
@@ -54,9 +58,20 @@ namespace refactor_this.Controllers
         [HttpPost]
         public IHttpActionResult Create(Product product)
         {
-            _productRepository.Insert(product);
-            _productRepository.Save();
-            return Ok();
+            if (product == null)
+                return (BadRequest());
+            try
+            {
+                _productRepository.Insert(product);
+                _productRepository.Save();
+                return Ok();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+
+            return Ok(BadRequest());
         }
 
         /// <summary>
@@ -69,10 +84,22 @@ namespace refactor_this.Controllers
         [HttpPost]
         public IHttpActionResult Update(Guid id, Product product)
         {
-            EntityState state = _productRepository.Update(id, product);
-            if (state != EntityState.Added)
-                _productRepository.Save();
-            return Ok();
+            if(id == null || product == null)
+            {
+                return Ok(BadRequest());
+            }
+            try
+            {
+                EntityState state = _productRepository.Update(id, product);
+                if (state != EntityState.Added)
+                    _productRepository.Save();
+                return Ok();
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(BadRequest());
         }
 
         /// <summary>
@@ -81,10 +108,23 @@ namespace refactor_this.Controllers
         /// <param name="productId">Id of the Product to delete</param>
         [Route("Remove")]
         [HttpPost]
-        public void Remove(Guid productId)
+        public IHttpActionResult Remove(Guid productId)
         {
-            _productRepository.Delete(productId);
-            _productRepository.Save();
+            if (productId == null)
+                return Ok(BadRequest());
+
+            try
+            {
+                _productRepository.Delete(productId);
+                _productRepository.Save();
+                return Ok(HttpStatusCode.OK);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
+
         }
 
 
@@ -101,11 +141,18 @@ namespace refactor_this.Controllers
             {
                 return BadRequest();
             }
-            var product = _productRepository.Find(name);
-            if (product == null)
-                return NotFound();
-
-            return Ok(product);
+            try
+            {
+                var product = _productRepository.Find(name);
+                if (product == null)
+                    return NotFound();
+                return Ok(product);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
         }
 
         /// <summary>
@@ -121,21 +168,32 @@ namespace refactor_this.Controllers
             {
                 return BadRequest();
             }
-            var product = _productRepository.Find(id);
-            if (product == null)
-                return NotFound();
-            return Ok(product);
+            try
+            {
+                var product = _productRepository.Find(id);
+                if (product == null)
+                    return NotFound();
+                return Ok(product);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return Ok(HttpStatusCode.BadRequest);
         }
+
         private string CraftJwt()
         {
-            string key = ConfigurationManager.AppSettings["jwt_signing_secret_key"]; //Secret key which will be used later during validation    
-            var issuer = ConfigurationManager.AppSettings["JWT-ValidIssuer"];
-            string validAudience = ConfigurationManager.AppSettings["JWT-ValidAudience"];
+            try
+            {
+                string key = ConfigurationManager.AppSettings["jwt_signing_secret_key"]; //Secret key which will be used later during validation    
+                var issuer = ConfigurationManager.AppSettings["JWT-ValidIssuer"];
+                string validAudience = ConfigurationManager.AppSettings["JWT-ValidAudience"];
 
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+                var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
-            var permClaims = new List<Claim>
+                var permClaims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim("valid", "1"),
@@ -143,12 +201,18 @@ namespace refactor_this.Controllers
                 new Claim("name", "test")
             };
 
-            var token = new JwtSecurityToken(issuer,
-                validAudience,
-                permClaims,
-                expires: DateTime.Now.AddDays(1),
-                signingCredentials: credentials);
-            return new JwtSecurityTokenHandler().WriteToken(token);
+                var token = new JwtSecurityToken(issuer,
+                    validAudience,
+                    permClaims,
+                    expires: DateTime.Now.AddDays(1),
+                    signingCredentials: credentials);
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.Error(ex.Message);
+            }
+            return "Error:";
         }
 
         /// <summary>
@@ -160,7 +224,7 @@ namespace refactor_this.Controllers
         [AllowAnonymous]
         public string GetToken()
         {
-            return $"Bearer {CraftJwt()}";
+            return "{CraftJwt()}";
         }
     }
 }

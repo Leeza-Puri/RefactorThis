@@ -19,7 +19,7 @@ namespace refactor_this
 
             // Web API routes
             config.MapHttpAttributeRoutes();
-
+            
             var container = new UnityContainer();
             container.RegisterType<IProductRepository<Product>, ProductRepository>(new HierarchicalLifetimeManager());
             container.RegisterType<IProductRepository<ProductOptions>, ProductOptionsRepository>(new HierarchicalLifetimeManager());
